@@ -1,16 +1,40 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './models/app/app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
+import { AppModule } from './modules/app/app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
   app.setGlobalPrefix('api');
 
+  app.use(cookieParser());
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      transformOptions: { enableImplicitConversion: true },
+      validateCustomDecorators: true,
+    }),
+  );
   app.enableCors({
     origin: true,
     credentials: true,
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT || 3000;
+
+  const config = new DocumentBuilder()
+    .setTitle('Social')
+    .setDescription('The Social API description')
+    .setVersion('1.0')
+    .addTag('Social')
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);
+
+  await app.listen(port, '0.0.0.0');
 }
+
 bootstrap();
