@@ -51,7 +51,7 @@ importers:
         specifier: ^1.7.9
         version: 1.8.2
       bcryptjs:
-        specifier: ^3.0.0
+        specifier: ^3.0.2
         version: 3.0.2
       cache-manager:
         specifier: ^6.4.1
