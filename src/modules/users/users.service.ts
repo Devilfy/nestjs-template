@@ -109,12 +109,18 @@ export class UsersService {
     await this.cacheManager.del('users');
     await this.cacheManager.del(`user_${id}`);
 
-    const hashedPassword = await this.passwordService.hashPassword(
-      dto.password,
-    );
+    if (dto.password) {
+      const hashedPassword = await this.passwordService.hashPassword(
+        dto.password,
+      );
+      await this.usersRepository.update(id, {
+        ...dto,
+        password: hashedPassword,
+      });
+    }
+
     const user = await this.usersRepository.update(id, {
       ...dto,
-      password: hashedPassword,
     });
 
     await this.cacheManager.set(`user_${user.id}`, user);
