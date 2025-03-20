@@ -9,6 +9,7 @@ import { InjectS3, S3 } from 'nestjs-s3';
 import { ConfigService } from '@nestjs/config';
 import { MediaType } from '@prisma/client';
 import { Readable } from 'stream';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class MediaService implements OnModuleInit {
@@ -24,7 +25,7 @@ export class MediaService implements OnModuleInit {
   }
 
   async uploadFile(file: Express.Multer.File, type: MediaType) {
-    const key = `${type}-${file.originalname}`;
+    const key = `${type}-${uuidv4()}-${file.originalname}`;
     try {
       const upload = await this.s3.putObject({
         Bucket: this.bucketName,
