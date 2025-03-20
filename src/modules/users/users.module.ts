@@ -5,10 +5,10 @@ import { PasswordService } from '../password/password.service';
 import { PrismaService } from '../app/prisma.service';
 import { UsersRepository } from './users.repository';
 import { JwtService } from '@nestjs/jwt';
-
+import { MediaModule } from '../media/media.module';
 @Module({
   controllers: [UsersController],
-  // imports: [AvatarModule],
+  imports: [MediaModule],
   providers: [
     UsersService,
     UsersRepository,
