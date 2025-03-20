@@ -3,12 +3,12 @@ services:
     build: .
     container_name: backend-template
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/template?schema=public
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/template
       ACCESS_TOKEN: ${ACCESS_TOKEN}
       REFRESH_TOKEN: ${REFRESH_TOKEN}
       REDIS_URL: http://redis:6379
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME}
       S3_REGION: ${S3_REGION}
       S3_ENDPOINT: http://minio:9000
@@ -22,7 +22,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: 'pnpm run start'
+    command: >
+      sh -c "npx prisma db push && npm run start:prod"
     networks:
       - backend
 
@@ -32,7 +33,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: template
     ports:
       - '5434:5432'
@@ -88,7 +89,7 @@ services:
         condition: service_healthy
     entrypoint: >
       sh -c "mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
-             mc mb local/template || true"
+             mc mb local/default || true"
     restart: on-failure
 
 volumes:
