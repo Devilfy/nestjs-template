@@ -3,14 +3,14 @@ services:
     build: .
     container_name: backend-template
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      ACCESS_TOKEN: ${ACCESS_TOKEN}
-      REFRESH_TOKEN: ${REFRESH_TOKEN}
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/template
+      ACCESS_TOKEN: ACCESS_TOKEN
+      REFRESH_TOKEN: REFRESH_TOKEN
       REDIS_URL: http://redis:6379
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
-      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
-      S3_REGION: ${S3_REGION}
+      S3_ACCESS_KEY: minio
+      S3_SECRET_KEY: miniopassword
+      S3_BUCKET_NAME: default
+      S3_REGION: us-east-1
       S3_ENDPOINT: http://minio:9000
       PORT: 4000
     ports:
@@ -24,23 +24,20 @@ services:
         condition: service_healthy
     command: >
       sh -c "npx prisma db push && npm run start:prod"
-    networks:
-      - backend
 
   postgres:
     container_name: postgres-template
     image: postgres:17-alpine3.21
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: template
     ports:
       - '5434:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
+
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 10s
@@ -53,8 +50,6 @@ services:
     restart: always
     ports:
       - '6379:6379'
-    networks:
-      - backend
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
@@ -62,25 +57,22 @@ services:
       retries: 3
 
   minio:
-    image: minio/minio
-    container_name: minio-template
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    image: minio/minio:latest
     ports:
       - '9000:9000'
       - '9001:9001'
-    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniopassword
+    command: server --console-address ":9001" /data
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 30s
       timeout: 20s
       retries: 3
     restart: unless-stopped
-    volumes:
-      - minio_data:/data
-    networks:
-      - backend
 
   minio-setup:
     image: minio/mc:latest
@@ -88,17 +80,10 @@ services:
       minio:
         condition: service_healthy
     entrypoint: >
-      sh -c "
-        sleep 10 &&
-        mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
-        mc mb local/${S3_BUCKET_NAME} || true &&
-        mc anonymous set public local/${S3_BUCKET_NAME}
-      "
+      sh -c "mc alias set local http://minio:9000 minio miniopassword &&
+             mc mb local/default || true"
     restart: on-failure
 
 volumes:
   postgres_data:
   minio_data:
-
-networks:
-  backend:
